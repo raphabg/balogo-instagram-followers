@@ -5,7 +5,7 @@ The project consists of an web app that you can use to see who unfollowed you on
 Front end was developed using technologies such as [React](https://reactjs.org/), [Redux Toolkit](https://redux-toolkit.js.org/), Typescript and [Material UI](https://mui.com/).
 
 Back end is a simple [Express.js](https://expressjs.com/) serverless APi that connects to a [Mongo DB](https://www.mongodb.com/) database (database is needed to store user sessions and followers from the past to be able to keep track of who unfollows the user).
-Application is made to be deployed on [Vercel](https://vercel.com/) but can easily be converted in standalone node.js api and react app. If you want to test the live version you can acess the web app through: [https://balogo-instagram-followers.vercel.app/](https://balogo-instagram-followers.vercel.app/)
+Application is made to be deployed on [Vercel](https://vercel.com/) but can easily be converted in standalone node.js api and react app. If you want to test the live version you can acess the web app through: [https://balogo-instagram-followers-4rk8msiog-raphabg.vercel.app/](https://balogo-instagram-followers-4rk8msiog-raphabg.vercel.app/)
 
 * <b>This is a personal project and i have no goal of using anyone's personal data, although in order to to make the application work, sensitive instagram user data will be kept on database if you use the deployed app url provided above</b>. 
 
