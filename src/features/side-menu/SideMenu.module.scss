@@ -1,0 +1,10 @@
+.leftMenu {
+	width: 300px;
+}
+
+.unselected {
+	filter: brightness(40%);
+}
+.unselected :hover {
+	filter: brightness(100%);
+}

@@ -1,0 +1,7 @@
+.background {
+	width: 100%;
+	min-height: 100%;
+	position: fixed;
+	filter: grayscale(40%) blur(5px);
+	z-index: -1;
+}
