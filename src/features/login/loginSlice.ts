@@ -43,7 +43,7 @@ export const LoginSlice = createSlice({
 			.addMatcher(InstagramPrivateAPI.endpoints.login.matchFulfilled, (state, action) => {
 				if (action.payload.data) {
 					const cookies = new Cookies();
-					cookies.set(Strings.sid, action.payload.sid);
+					cookies.set(Strings.sid, action.payload.sid, { secure: true, sameSite: true, maxAge: 2592000 });
 
 					state.isLoggedIn = true;
 					state.loginData.tfaCode = '';

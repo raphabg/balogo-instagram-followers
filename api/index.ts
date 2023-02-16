@@ -1,10 +1,10 @@
-import { APIErrors } from './../src/constants';
+import { APIErrors, status } from './../src/constants';
 import { Express } from 'express';
 import { APILoginTfaNeededResponse, FollowersAPIRequest, LoginAPIRequest } from './../src/interfaces';
 import { Feed, IgApiClient, IgLoginTwoFactorRequiredError } from 'instagram-private-api';
 import Bluebird from 'bluebird';
-const { v4 } = require('uuid');
-const express = require('express');
+import express from 'express';
+import { MongoClient, ServerApiVersion, ObjectId, WithId, Document } from 'mongodb';
 
 const app: Express = express();
 app.use(express.json());
@@ -14,6 +14,11 @@ ig.state.generateDevice(!process.env.NODE_ENV || process.env.NODE_ENV === 'devel
 
 app.post('/api/login', async (req, res) => {
 	const body = req.body as LoginAPIRequest;
+
+	if (body.sid) {
+		const state = await retrieveState(new ObjectId(body.sid));
+		await ig.state.deserialize(state?.state);
+	}
 
 	const login = await Bluebird.try(() => ig.account.login(body.data.username, body.data.password))
 		.catch(IgLoginTwoFactorRequiredError, async err => {
@@ -41,7 +46,10 @@ app.post('/api/login', async (req, res) => {
 				trustThisDevice: '1', // Can be omitted as '1' is used by default
 			});
 		})
-		.catch(e => console.error('Login error', e, e.stack));
+		.catch(e => {
+			console.error('Login error', e, e?.stack);
+			res.status(401).json();
+		});
 
 	if ((login as any).errorCode) {
 		res.status(503).json(login);
@@ -51,37 +59,90 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/followers', async (req, res) => {
-	const body = req.body as FollowersAPIRequest;
-	res.status(401).json();
-	// // await ig.state.deserialize(body.state);
+	try {
+		const body = req.body as FollowersAPIRequest;
 
-	// const followersFeed = ig.feed.accountFollowers(ig.state.cookieUserId);
-	// const followers = await getAllItemsFromFeed(followersFeed);
+		const state = await retrieveState(new ObjectId(body.sid));
+		await ig.state.deserialize(state?.state);
 
-	// res.status(501).json({ data: followers });
+		const followersFeed = ig.feed.accountFollowers(ig.state.cookieUserId);
+		const followers = await getAllItemsFromFeed(followersFeed);
+
+		saveState(new ObjectId(body.sid));
+		res.json({ data: followers });
+	} catch (e: any) {
+		console.error('Error fetching followers', e, e?.stack);
+		res.status(401).json();
+	}
+});
+
+app.post('/api/following', async (req, res) => {
+	try {
+		const body = req.body as FollowersAPIRequest;
+
+		const state = await retrieveState(new ObjectId(body.sid));
+		await ig.state.deserialize(state?.state);
+
+		const followingFeed = ig.feed.accountFollowing(ig.state.cookieUserId);
+		const followers = await getAllItemsFromFeed(followingFeed);
+
+		saveState(new ObjectId(body.sid));
+		res.json({ data: followers });
+	} catch (e: any) {
+		console.error('Error fetching followers', e, e?.stack);
+		res.status(401).json();
+	}
 });
 
 async function getAllItemsFromFeed<T>(feed: Feed<any, T>): Promise<T[]> {
 	let items: any = [];
-	do {
-		items = items.concat(await feed.items());
-	} while (feed.isMoreAvailable());
+
+	while (feed.isMoreAvailable()) {
+		const batch = await feed.items();
+
+		items = items.concat(batch);
+	}
+
 	return items;
 }
 
-async function saveState(id?: string) {
-	if (!id) id = v4();
+async function saveState(id?: ObjectId) {
+	if (!id) {
+		id = new ObjectId();
+	}
 
 	const serialized = await ig.state.serialize();
 	delete serialized.constants;
 
-	//TODO SAVE ON MONGODB
+	const client = connect();
+	await client.connect();
 
-	return id;
+	const collection = client.db('IAPI').collection('state');
+	await collection.insertOne({ _id: id, state: serialized });
+	await client.close();
+
+	return id.toString();
 }
 
-async function retrieveState(id: string) {
-	//TODO GET FROM MONGODB
+async function retrieveState(id: ObjectId): Promise<WithId<Document> | null> {
+	const client = connect();
+	await client.connect();
+
+	const collection = client.db('IAPI').collection('state');
+	const obj = await collection.findOne({ _id: id });
+	await client.close();
+
+	return obj;
 }
+
+const connect = () => {
+	const uri = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_CLUSTER}/?retryWrites=true&w=majority`;
+
+	const client = new MongoClient(uri, {
+		serverApi: ServerApiVersion.v1,
+	});
+
+	return client;
+};
 
 module.exports = app;

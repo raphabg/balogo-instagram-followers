@@ -1,11 +1,12 @@
-import { Box, useTheme } from '@mui/material';
-import React from 'react';
+import { Box } from '@mui/material';
 import styles from './FollowersPane.module.scss';
 import { SearchBox } from '../../features/searchbox/SearchBox';
-import { Followers } from '../../features/followers/Followers';
+import { FollowersList } from '../followersList/FollowersList';
+import { useAppSelector } from '../../app/hooks';
+import { selectSelected } from '../../features/side-menu/SideMenuSlice';
 
 export const FollowersPane = () => {
-	const theme = useTheme();
+	const selected = useAppSelector(selectSelected);
 
 	return (
 		<Box
@@ -16,7 +17,7 @@ export const FollowersPane = () => {
 			className={styles.followersPane}
 		>
 			<SearchBox />
-			<Followers />
+			<FollowersList selected={selected} />
 		</Box>
 	);
 };

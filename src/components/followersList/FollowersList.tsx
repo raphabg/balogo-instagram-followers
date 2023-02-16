@@ -1,19 +1,25 @@
-import React from 'react';
-import { Follower } from '../follower/Follower';
 import { Box } from '@mui/material';
 import styles from './FollowersList.module.scss';
-import { FollowerT } from '../../interfaces';
+import { useUsersQuery } from '../../app/InstagramPrivateAPI';
+import { Follower } from '../follower/Follower';
+import { MenuItemT } from '../../constants';
 
 type Props = {
-	followers: string[];
+	selected: MenuItemT;
 };
 
-export const FollowersList = ({ followers }: Props) => {
+export const FollowersList = ({ selected }: Props) => {
+	const { data, error, isLoading, isSuccess, isFetching } = useUsersQuery(selected);
+
 	return (
 		<Box display={'flex'} flexDirection={'column'} className={styles.followersList}>
-			{followers.map((x, i) => (
-				<Follower userName={x} key={x + i} />
-			))}
+			{isFetching
+				? 'Fetching...'
+				: isLoading
+				? 'Loading...'
+				: isSuccess
+				? data.map((x, i) => <Follower userName={x.userName} key={x.userName}></Follower>)
+				: 'Error.'}
 		</Box>
 	);
 };
