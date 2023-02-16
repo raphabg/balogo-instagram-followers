@@ -20,6 +20,8 @@ app.post('/api/login', async (req, res) => {
 		await ig.state.deserialize(state?.state);
 	}
 
+	console.log(body);
+
 	const login = await Bluebird.try(() => ig.account.login(body.data.username, body.data.password))
 		.catch(IgLoginTwoFactorRequiredError, async err => {
 			const { username, totp_two_factor_on, two_factor_identifier } = err.response.body.two_factor_info;
